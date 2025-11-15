@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyCycle - Tracker Menstrual</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        header {
+            background: white;
+            padding: 15px 10px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        header h1 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+        
+        header p {
+            font-size: 0.9em;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .nav-btn {
+            padding: 10px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .content-section {
+            display: none;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .content-section h2 {
+            font-size: 1.4em;
+            margin-bottom: 15px;
+        }
+        
+        .content-section h3 {
+            font-size: 1.1em;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* Calendar Styles */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-top: 15px;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px 4px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-size: 0.85em;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 45px;
+        }
+
+        .calendar-day:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .calendar-day.today {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .calendar-day.period {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+        }
+
+        .calendar-day.fertile {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .calendar-day.perimenopause {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .day-number {
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+
+        .day-symptoms {
+            font-size: 0.6em;
+            margin-top: 2px;
+        }
+
+        /* Symptom Form */
+        .symptom-form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .symptom-group {
+            background: #f8f9ff;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .symptom-group h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .save-btn {
+            margin-top: 15px;
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 15px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card h2 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card p {
+            font-size: 0.85em;
+        }
+
+        .settings-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+            
+            header {
+                padding: 12px 8px;
+                margin-bottom: 10px;
+            }
+            
+            header h1 {
+                font-size: 1.5em;
+            }
+            
+            header p {
+                font-size: 0.85em;
+            }
+            
+            .calendar-grid {
+                gap: 3px;
+            }
+            
+            .calendar-day {
+                padding: 3px;
+                font-size: 0.85em;
+                min-height: 40px;
+                border-radius: 5px;
+            }
+            
+            .calendar-header {
+                padding: 6px 2px;
+                font-size: 0.75em;
+            }
+            
+            .day-number {
+                font-size: 0.9em;
+            }
+            
+            .day-symptoms {
+                font-size: 0.55em;
+            }
+            
+            .nav-tabs {
+                gap: 5px;
+            }
+            
+            .nav-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            
+            .content-section {
+                padding: 12px;
+            }
+            
+            .content-section h2 {
+                font-size: 1.2em;
+            }
+            
+            .symptom-group {
+                padding: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            header h1 {
+                font-size: 1.3em;
+            }
+            
+            .calendar-day {
+                min-height: 35px;
+            }
+            
+            .day-number {
+                font-size: 0.85em;
+            }
+            
+            .nav-btn {
+                padding: 7px 10px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌸 MyCycle Tracker</h1>
+            <p>Monitorizează-ți ciclul, simptomele și sănătatea ta</p>
+            
+            <div class="nav-tabs">
+                <button class="nav-btn active" onclick="showSection('calendar')">📅 Calendar</button>
+                <button class="nav-btn" onclick="showSection('daily-log')">📝 Jurnal Zilnic</button>
+                <button class="nav-btn" onclick="showSection('statistics')">📊 Statistici</button>
+                <button class="nav-btn" onclick="showSection('settings')">⚙️ Setări</button>
+            </div>
+        </header>
+
+        <!-- Calendar Section -->
+        <div id="calendar" class="content-section active">
+            <h2>Calendarul Meu</h2>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button onclick="changeMonth(-1)">⬅️ Luna Anterioară</button>
+                <span id="currentMonth" style="font-size: 1.5em; font-weight: bold; margin: 0 20px;"></span>
+                <button onclick="changeMonth(1)">Luna Următoare ➡️</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar will be generated here -->
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 20px; height: 20px; background: linear-gradient(45deg, #ff6b6b, #ff8e8e); border-radius: 5px;"></div>
+                    <span>Perioadă Menstruală</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 20px; height: 20px; background: linear-gradient(45deg, #4ecdc4, #44a08d); border-radius: 5px;"></div>
+                    <span>Fereastra Fertilă</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 20px; height: 20px; background: linear-gradient(45deg, #f093fb, #f5576c); border-radius: 5px;"></div>
+                    <span>Perimenopauză</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Log Section -->
+        <div id="daily-log" class="content-section">
+            <h2>Jurnal Zilnic - <span id="selectedDate"></span></h2>
+            
+            <div class="symptom-form">
+                <div class="symptom-group">
+                    <h3>💧 Flux Menstrual</h3>
+                    <select id="flowLevel">
+                        <option value="">Fără flux</option>
+                        <option value="spotting">Sângerare ușoară ( spotting )</option>
+                        <option value="light">Flux slab</option>
+                        <option value="medium">Flux mediu</option>
+                        <option value="heavy">Flux abundent</option>
+                    </select>
+                </div>
+
+                <div class="symptom-group">
+                    <h3>😊 Stare de Spirit</h3>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="fericită"> Fericită</label>
+                        <label><input type="checkbox" value="tristă"> Tristă</label>
+                        <label><input type="checkbox" value="anxioasă"> Anxioasă</label>
+                        <label><input type="checkbox" value="irascibilă"> Irascibilă</label>
+                        <label><input type="checkbox" value="eufonică"> Eufonică</label>
+                        <label><input type="checkbox" value="depresivă"> Depresivă</label>
+                    </div>
+                </div>
+
+                <div class="symptom-group">
+                    <h3>🔥 Simptome Perimenopauză</h3>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="bufeur"> Bufeuri</label>
+                        <label><input type="checkbox" value="transpiratii"> Transpirații nocturne</label>
+                        <label><input type="checkbox" value="insomnie"> Insomnie</label>
+                        <label><input type="checkbox" value="uscaciune"> Uscăciune vaginală</label>
+                        <label><input type="checkbox" value="libido"> Modificări libido</label>
+                        <label><input type="checkbox" value="crestere-greutate"> Creștere în greutate</label>
+                    </div>
+                </div>
+
+                <div class="symptom-group">
+                    <h3>🤕 Simptome Fizice</h3>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="dureri-burta"> Dureri de burtă</label>
+                        <label><input type="checkbox" value="dureri-cap"> Dureri de cap</label>
+                        <label><input type="checkbox" value="dureri-spate"> Dureri de spate</label>
+                        <label><input type="checkbox" value="sani-sensibili"> Sâni sensibili</label>
+                        <label><input type="checkbox" value="balonare"> Balonare</label>
+                        <label><input type="checkbox" value="greata"> Grețuri</label>
+                        <label><input type="checkbox" value="oboseala"> Oboseală</label>
+                        <label><input type="checkbox" value="energie"> Energie crescută</label>
+                    </div>
+                </div>
+
+                <div class="symptom-group">
+                    <h3>😴 Somn & Energie</h3>
+                    <label>Calitate somn (1-10):</label>
+                    <input type="number" id="sleepQuality" min="1" max="10" placeholder="7">
+                    <label>Nivel energie (1-10):</label>
+                    <input type="number" id="energyLevel" min="1" max="10" placeholder="5">
+                </div>
+
+                <div class="symptom-group">
+                    <h3>📝 Note Personale</h3>
+                    <textarea id="personalNotes" rows="3" placeholder="Adaugă observații personale..."></textarea>
+                </div>
+
+                <button class="save-btn" onclick="saveDailyLog()">💾 Salvează Jurnalul</button>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div id="statistics" class="content-section">
+            <h2>Statistici și Grafice</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h2 id="avgCycleLength">28</h2>
+                    <p>Durată medie ciclu (zile)</p>
+                </div>
+                <div class="stat-card">
+                    <h2 id="lastPeriod">-</h2>
+                    <p>Ultima perioadă</p>
+                </div>
+                <div class="stat-card">
+                    <h2 id="nextPeriod">-</h2>
+                    <p>Următoarea perioadă estimată</p>
+                </div>
+                <div class="stat-card">
+                    <h2 id="symptomDays">0</h2>
+                    <p>Zile cu simptome înregistrate</p>
+                </div>
+            </div>
+
+            <h3>📈 Lungimea Ciclului în Ultimele 6 Luni</h3>
+            <div class="chart-container">
+                <canvas id="cycleChart"></canvas>
+            </div>
+
+            <h3>📊 Intensitatea Simptomelor pe Ciclu</h3>
+            <div class="chart-container">
+                <canvas id="symptomChart"></canvas>
+            </div>
+
+            <h3>😊 Evoluția Stării de Spirit</h3>
+            <div class="chart-container">
+                <canvas id="moodChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settings" class="content-section">
+            <h2>Setări Personale</h2>
+            
+            <div class="settings-form">
+                <div class="settings-group">
+                    <label for="userAge">Vârstă:</label>
+                    <input type="number" id="userAge" min="10" max="70" onchange="saveSettings()">
+                </div>
+                
+                <div class="settings-group">
+                    <label for="avgCycle">Durată medie ciclu (zile):</label>
+                    <input type="number" id="avgCycle" min="21" max="35" value="28" onchange="saveSettings()">
+                </div>
+                
+                <div class="settings-group">
+                    <label for="periodLength">Durată perioadă menstruală (zile):</label>
+                    <input type="number" id="periodLength" min="1" max="10" value="5" onchange="saveSettings()">
+                </div>
+                
+                <div class="settings-group">
+                    <label for="appMode">Mod Aplicație:</label>
+                    <select id="appMode" onchange="saveSettings()">
+                        <option value="regular">Ciclu Regular</option>
+                        <option value="irregular">Ciclu Neregulat</option>
+                        <option value="perimenopause">Perimenopauză</option>
+                        <option value="menopause">Menopauză</option>
+                    </select>
+                </div>
+                
+                <div class="settings-group">
+                    <label for="notifications">Notificări active:</label>
+                    <input type="checkbox" id="notifications" onchange="saveSettings()">
+                </div>
+                
+                <button onclick="exportData()">📤 Exportează Datele</button>
+                <button onclick="clearAllData()" style="background: #e74c3c;">🗑️ Șterge Toate Datele</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentDate = new Date();
+        let selectedDate = new Date().toISOString().split('T')[0];
+        let userData = {
+            age: null,
+            avgCycleLength: 28,
+            periodLength: 5,
+            mode: 'regular',
+            notifications: false
+        };
+        
+        // Data Storage
+        const STORAGE_KEYS = {
+            logs: 'cycleLogs',
+            userData: 'userSettings',
+            cycles: 'menstrualCycles'
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            loadDailyLog();
+            updateStatistics();
+            generateCharts();
+        });
+
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (sectionId === 'statistics') {
+                updateStatistics();
+                generateCharts();
+            }
+        }
+
+        // Calendar Functions
+        function generateCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            document.getElementById('currentMonth').textContent = 
+                new Date(year, month).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+            
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            
+            // Add headers
+            const days = ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'];
+            days.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+            
+            // Add empty cells
+            for (let i = 0; i < firstDay; i++) {
+                grid.appendChild(document.createElement('div'));
+            }
+            
+            // Add days
+            const logs = getStoredLogs();
+            const cycles = getStoredCycles();
+            const today = new Date().toISOString().split('T')[0];
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.onclick = () => selectDate(dateStr);
+                
+                // Add day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = day;
+                dayElement.appendChild(dayNumber);
+                
+                // Check if today
+                if (dateStr === today) {
+                    dayElement.classList.add('today');
+                }
+                
+                // Check for period
+                if (isPeriodDay(dateStr, cycles)) {
+                    dayElement.classList.add('period');
+                }
+                
+                // Check for fertile window
+                if (isFertileDay(dateStr, cycles)) {
+                    dayElement.classList.add('fertile');
+                }
+                
+                // Check for perimenopause symptoms
+                if (userData.mode === 'perimenopause' && hasSymptoms(dateStr, logs)) {
+                    dayElement.classList.add('perimenopause');
+                }
+                
+                // Show symptoms count
+                if (logs[dateStr]) {
+                    const symptomCount = Object.keys(logs[dateStr].symptoms || {}).length;
+                    if (symptomCount > 0) {
+                        const symptoms = document.createElement('div');
+                        symptoms.className = 'day-symptoms';
+                        symptoms.textContent = `📊 ${symptomCount}`;
+                        dayElement.appendChild(symptoms);
+                    }
+                }
+                
+                grid.appendChild(dayElement);
+            }
+        }
+
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            generateCalendar();
+        }
+
+        function selectDate(dateStr) {
+            selectedDate = dateStr;
+            showSection('daily-log');
+            document.getElementById('selectedDate').textContent = formatDate(dateStr);
+            loadDailyLog();
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Daily Log Functions
+        function loadDailyLog() {
+            const logs = getStoredLogs();
+            const log = logs[selectedDate] || {};
+            
+            // Load flow level
+            document.getElementById('flowLevel').value = log.flow || '';
+            
+            // Load checkboxes
+            document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            if (log.symptoms) {
+                Object.keys(log.symptoms).forEach(symptom => {
+                    const checkbox = document.querySelector(`input[value="${symptom}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
+            // Load sleep and energy
+            document.getElementById('sleepQuality').value = log.sleepQuality || '';
+            document.getElementById('energyLevel').value = log.energyLevel || '';
+            
+            // Load notes
+            document.getElementById('personalNotes').value = log.notes || '';
+            
+            document.getElementById('selectedDate').textContent = formatDate(selectedDate);
+        }
+
+        function saveDailyLog() {
+            const logs = getStoredLogs();
+            
+            // Collect symptom data
+            const symptoms = {};
+            document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked').forEach(checkbox => {
+                symptoms[checkbox.value] = true;
+            });
+            
+            logs[selectedDate] = {
+                flow: document.getElementById('flowLevel').value,
+                symptoms: symptoms,
+                sleepQuality: document.getElementById('sleepQuality').value,
+                energyLevel: document.getElementById('energyLevel').value,
+                notes: document.getElementById('personalNotes').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Detect period start
+            if (document.getElementById('flowLevel').value && 
+                (!logs[selectedDate - 1] || !logs[selectedDate - 1].flow)) {
+                addCycleStart(selectedDate);
+            }
+            
+            localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(logs));
+            alert('Jurnalul a fost salvat cu succes! 🎉');
+            generateCalendar();
+        }
+
+        // Statistics and Charts
+        function updateStatistics() {
+            const cycles = getStoredCycles();
+            const logs = getStoredLogs();
+            
+            // Average cycle length
+            if (cycles.length >= 2) {
+                const cyclesLength = [];
+                for (let i = 1; i < cycles.length; i++) {
+                    const diff = (new Date(cycles[i]) - new Date(cycles[i-1])) / (1000 * 60 * 60 * 24);
+                    cyclesLength.push(diff);
+                }
+                const avg = Math.round(cyclesLength.reduce((a, b) => a + b, 0) / cyclesLength.length);
+                document.getElementById('avgCycleLength').textContent = avg;
+            }
+            
+            // Last period
+            if (cycles.length > 0) {
+                document.getElementById('lastPeriod').textContent = formatDate(cycles[cycles.length - 1]);
+                
+                // Next predicted period (only for regular cycles)
+                if (userData.mode === 'regular') {
+                    const nextDate = new Date(cycles[cycles.length - 1]);
+                    nextDate.setDate(nextDate.getDate() + userData.avgCycleLength);
+                    document.getElementById('nextPeriod').textContent = formatDate(nextDate.toISOString().split('T')[0]);
+                } else if (userData.mode === 'irregular') {
+                    document.getElementById('nextPeriod').textContent = 'Ciclu neregulat';
+                } else {
+                    document.getElementById('nextPeriod').textContent = '-';
+                }
+            }
+            
+            // Days with symptoms
+            const symptomDays = Object.keys(logs).filter(date => 
+                logs[date].symptoms && Object.keys(logs[date].symptoms).length > 0
+            ).length;
+            document.getElementById('symptomDays').textContent = symptomDays;
+        }
+
+        function generateCharts() {
+            const logs = getStoredLogs();
+            const cycles = getStoredCycles();
+            
+            // Cycle Length Chart
+            if (cycles.length >= 2) {
+                const cycleData = [];
+                const labels = [];
+                for (let i = 1; i < cycles.length && i <= 6; i++) {
+                    const diff = Math.round((new Date(cycles[i]) - new Date(cycles[i-1])) / (1000 * 60 * 60 * 24));
+                    cycleData.push(diff);
+                    labels.push(`Ciclul ${i}`);
+                }
+                
+                const ctx1 = document.getElementById('cycleChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Lungime ciclu (zile)',
+                            data: cycleData,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+            
+            // Symptom Chart
+            const symptomCounts = {};
+            Object.values(logs).forEach(log => {
+                if (log.symptoms) {
+                    Object.keys(log.symptoms).forEach(symptom => {
+                        symptomCounts[symptom] = (symptomCounts[symptom] || 0) + 1;
+                    });
+                }
+            });
+            
+            const ctx2 = document.getElementById('symptomChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(symptomCounts).map(s => translateSymptom(s)),
+                    datasets: [{
+                        label: 'Frecvență simptome',
+                        data: Object.values(symptomCounts),
+                        backgroundColor: '#764ba2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Mood Chart (last 30 days)
+            const moodData = [];
+            const moodLabels = [];
+            const moodMap = { 'fericită': 5, 'eufonică': 4, 'anxioasă': 2, 'tristă': 1, 'irascibilă': 2, 'depresivă': 1 };
+            
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                moodLabels.push(date.getDate());
+                
+                const log = logs[dateStr];
+                if (log && log.symptoms) {
+                    const moods = Object.keys(log.symptoms).filter(s => moodMap[s]);
+                    const avgMood = moods.length > 0 ? 
+                        moods.reduce((sum, mood) => sum + moodMap[mood], 0) / moods.length : null;
+                    moodData.push(avgMood);
+                } else {
+                    moodData.push(null);
+                }
+            }
+            
+            const ctx3 = document.getElementById('moodChart').getContext('2d');
+            new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: moodLabels,
+                    datasets: [{
+                        label: 'Stare de spirit (1-5)',
+                        data: moodData,
+                        borderColor: '#f5576c',
+                        backgroundColor: 'rgba(245, 87, 108, 0.1)',
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Data Management
+        function getStoredLogs() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.logs) || '{}');
+        }
+
+        function getStoredCycles() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.cycles) || '[]');
+        }
+
+        function addCycleStart(dateStr) {
+            const cycles = getStoredCycles();
+            cycles.push(dateStr);
+            cycles.sort();
+            localStorage.setItem(STORAGE_KEYS.cycles, JSON.stringify(cycles));
+        }
+
+        function loadUserData() {
+            const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.userData) || '{}');
+            userData = { ...userData, ...stored };
+            
+            document.getElementById('userAge').value = userData.age || '';
+            document.getElementById('avgCycle').value = userData.avgCycleLength;
+            document.getElementById('periodLength').value = userData.periodLength;
+            document.getElementById('appMode').value = userData.mode;
+            document.getElementById('notifications').checked = userData.notifications;
+            
+            generateCalendar();
+        }
+
+        function saveSettings() {
+            userData = {
+                age: document.getElementById('userAge').value,
+                avgCycleLength: parseInt(document.getElementById('avgCycle').value),
+                periodLength: parseInt(document.getElementById('periodLength').value),
+                mode: document.getElementById('appMode').value,
+                notifications: document.getElementById('notifications').checked
+            };
+            localStorage.setItem(STORAGE_KEYS.userData, JSON.stringify(userData));
+            alert('Setările au fost salvate! 🎉');
+            generateCalendar();
+        }
+
+        function exportData() {
+            const data = {
+                logs: getStoredLogs(),
+                cycles: getStoredCycles(),
+                settings: userData,
+                exportDate: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mycycle-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function clearAllData() {
+            // Create custom confirmation dialog
+            const confirmed = window.confirm('Ești sigură că vrei să ștergi TOATE datele? Această acțiune este ireversibilă!');
+            if (confirmed) {
+                try {
+                    localStorage.clear();
+                    alert('Toate datele au fost șterse! 🗑️');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 500);
+                } catch (e) {
+                    alert('Eroare la ștergerea datelor: ' + e.message);
+                }
+            }
+        }
+
+        // Helper Functions
+        function isPeriodDay(dateStr, cycles) {
+            const date = new Date(dateStr);
+            return cycles.some(cycleStart => {
+                const start = new Date(cycleStart);
+                const end = new Date(start);
+                end.setDate(end.getDate() + userData.periodLength);
+                return date >= start && date < end;
+            });
+        }
+
+        function isFertileDay(dateStr, cycles) {
+            // Don't show fertile window for irregular cycles or menopause
+            if (userData.mode === 'irregular' || userData.mode === 'menopause') return false;
+            if (cycles.length < 2) return false;
+            
+            const date = new Date(dateStr);
+            const lastCycle = new Date(cycles[cycles.length - 1]);
+            const ovulationDay = new Date(lastCycle);
+            ovulationDay.setDate(ovulationDay.getDate() + Math.round(userData.avgCycleLength / 2));
+            
+            const fertileStart = new Date(ovulationDay);
+            fertileStart.setDate(fertileStart.getDate() - 3);
+            const fertileEnd = new Date(ovulationDay);
+            fertileEnd.setDate(fertileEnd.getDate() + 1);
+            
+            return date >= fertileStart && date <= fertileEnd;
+        }
+
+        function hasSymptoms(dateStr, logs) {
+            return logs[dateStr] && logs[dateStr].symptoms && Object.keys(logs[dateStr].symptoms).length > 0;
+        }
+
+        function translateSymptom(symptom) {
+            const translations = {
+                'bufeur': 'Bufeuri',
+                'transpiratii': 'Transpirații',
+                'insomnie': 'Insomnie',
+                'dureri-burta': 'Dureri de burtă',
+                'dureri-cap': 'Dureri de cap',
+                'dureri-spate': 'Dureri de spate',
+                'sani-sensibili': 'Sâni sensibili',
+                'balonare': 'Balonare',
+                'greata': 'Grețuri',
+                'oboseala': 'Oboseală',
+                'energie': 'Energie'
+            };
+            return translations[symptom] || symptom;
+        }
+
+        // Initialize calendar on load
+        generateCalendar();
+    </script>
+</body>
+</html>
